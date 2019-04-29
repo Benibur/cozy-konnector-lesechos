@@ -14,6 +14,10 @@ const {
       pdf2bill         = require('./pdf2bill'         ).pdf2bill
 
 
+
+/***********************************************************************
+  MAIN
+************************************************************************/
 var CTXT // the context sent by index.js
 module.exports = (ctxt) => {
   CTXT = ctxt
