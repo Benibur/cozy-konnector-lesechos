@@ -1,3 +1,4 @@
+
 /*******************************************
   GLOBALS
 *********************************************/
@@ -8,6 +9,7 @@ const {
       saveBills     ,
     }                  = require('cozy-konnector-libs'),
       Promise          = require('bluebird'           ),
+      Readable         = require('stream'             ).Readable,
       $                = require('cheerio'            ),
       pdf2bill         = require('./pdf2bill'         ).pdf2bill
 
@@ -21,7 +23,7 @@ module.exports = (ctxt) => {
 
 
 /***********************************************************************
-  INVOICES RETRIEVAL
+  INVOICES LIST RETRIEVAL
 ************************************************************************/
 
 function retrieveInvoices() {
@@ -60,6 +62,12 @@ function retrieveInvoices() {
   })
 }
 
+
+
+/***********************************************************************
+  INVOICE : GET & SAVE
+************************************************************************/
+
 function getAndSaveInvoice(invoice) {
   const path = invoice.url.split('/')
   for (var i = 0; i < path.length; i++) {
@@ -83,12 +91,15 @@ function getAndSaveInvoice(invoice) {
     }
   })
   .then( body => {
+    console.log('====================');
+    console.log('after get invoice, body is a buffer, mais save');
+    console.log(body);
     return pdf2bill(body)
       .then( bill => {
         invoice = {...invoice, ...bill}
         // require('fs').writeFileSync('data/'+invoice.id+'.pdf', body)
         // TODO save pdf ( ou alors le télécharger 2 fois...)
-        const fileDoc = cozyClient.files.create(body, {  // TODO deduplicate if article already retrieved (à faire en amont non ?)
+        const fileDoc = cozyClient.files.create(bufferToStream(body), {  // TODO deduplicate if article already retrieved (à faire en amont non ?)
             name        : invoice.filename  ,
             dirID       : ''                , // TODO
             contentType : 'application/pdf' ,
@@ -103,4 +114,18 @@ function getAndSaveInvoice(invoice) {
     // TODO 2 : comment est ce que je dis à savebills de ne pas à nouveau télécharger le pdf ?
     return saveBills([invoice], CTXT.fields, {identifiers: ['echos']})
   })
+}
+
+
+/********************************************
+ * returns readableInstanceStream Readable
+ *********************************************/
+function bufferToStream(buffer) {
+  const readableInstanceStream = new Readable({
+    read() {
+      this.push(buffer)
+      this.push(null)
+    }
+  })
+  return readableInstanceStream
 }
