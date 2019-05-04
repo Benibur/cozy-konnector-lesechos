@@ -47,11 +47,10 @@ function authenticateAPI(username, password) {
       Accept         : 'application/json, text/plain, */*'
     },
   }
-  // return requestFactory({jar:true,cheerio:false,json:false}) // TODO : if json:true : error ???
-  return CTXT.request // TODO : if json:true : error ???
+
+  return CTXT.request
     .post(options)
     .then(body=>{
-      // console.log(JSON.parse(body))
       body = JSON.parse(body)
       CTXT.authorization = 'Bearer ' + body.token
       // store as cookies for lesechos.fr the data sent in the body
@@ -62,11 +61,11 @@ function authenticateAPI(username, password) {
     })
     .then( ()=> log('info', 'API authentification OK'))
     .catch( err => {
-      log('error', 'Server connection failed.')
-      log('error',  err.message)
-      // TODO tell the stack login is Nok, how can i know login failed ? err === 'id' ??
-      throw new Error(errors.VENDOR_DOWN )
-      throw new Error(errors.LOGIN_FAILED)
+      log('error', err.message)
+      if (err.statusCode === 401) {
+        throw new Error(errors.LOGIN_FAILED)
+      }
+      throw new Error(errors.VENDOR_DOWN)
     })
 }
 
@@ -78,8 +77,7 @@ function authenticateAPI(username, password) {
   and then submit the form
 ********************************************************/
 function authenticateAccount(username, password) {
-  // return CTXT.requestFactory({jar:CTXT.cookieJar,cheerio:true,json:false})
-  return CTXT.requestFactory({jar:CTXT.cookieJar,cheerio:true,json:false}) // TODO is it possible to have `cheerio:true` in options ?
+  return CTXT.requestFactory({jar:CTXT.cookieJar,cheerio:true,json:false}) // TODO is it possible to have `cheerio:true` in options ? réponse = non
     .get({
       url     : 'https://serviceclients.lesechos.fr/customer/account/login/',
       gzip    : true,
@@ -98,14 +96,11 @@ function authenticateAccount(username, password) {
       CTXT.formKey = body$('#login-form input[name="form_key"]').attr('value')
     })
     .catch( err => {
-      log('error', 'Server connection failed.')
-      log('error', err)
-      // TODO tell the stack login is Nok, how can i know login failed ? err === 'id' ??
+      log('error', err.message)
       throw new Error(errors.VENDOR_DOWN)
-      throw new Error(errors.LOGIN_FAILED)
     })
     .then( () => {
-      return CTXT.requestFactory({jar:CTXT.cookieJar,cheerio:false,json:false, gzip:false})
+      return CTXT.requestFactory({jar:CTXT.cookieJar,cheerio:false,json:false, gzip:true})
         .post({
           url: 'https://serviceclients.lesechos.fr/customer/account/loginPost/',
           headers: {
@@ -127,15 +122,18 @@ function authenticateAccount(username, password) {
             'login[password]': password    ,
           }
         })
-        .then(body$=>{
+        .then(body=>{
+          // NOTE : the response is always ok, so  another request should be sent to test the connection.
+          // But as the API auth worked, there is no resons why it should fail here.
           log('info', 'Account authentification OK')
         })
         .catch( err => {
           log('error', 'Account authentification failed.')
-          log('error', err)
-          // TODO tell the stack login is Nok, how can i know login failed ? err === 'id' ??
+          log('error', err.message)
+          if (err.statusCode === 401) {
+            throw new Error(errors.LOGIN_FAILED)
+          }
           throw new Error(errors.VENDOR_DOWN)
-          throw new Error(errors.LOGIN_FAILED)
         })
 
     })

@@ -46,23 +46,26 @@ function retrieveInvoices() {
     }
   })
   .then(body$ => {
-    const invoices = []  // [{url:url}]
+    const invoices = []  // [{url:url, id:id}]
     body$('#main-content .invoice-download a').each((i,el)=>{
       const el$ = $(el)
-      invoices.push({url:el$.attr('href')})
+      const url = el$.attr('href')
+      const id  = url.match(/id\/(.*?)\//)[1]
+      invoices.push({url, id})
     })
-    log('info', 'invoices to get : n' + invoices);
+    log('info', 'invoices to get : n' + JSON.stringify(invoices));
     return Promise.mapSeries(invoices, invoice => {
       return getAndSaveInvoice(invoice)
       .catch( err => {
-        log('error', 'could not getAndSaveInvoice invoice '+ invoice.url)  // TODO gestion correcte des erreurs ?
+        log('error', 'could not getAndSaveInvoice invoice '+ invoice.url)  // TODO gestion correcte des erreurs ? throw new error ?
         log('error',  err.message)
       })
     })
   })
   .catch( err => {
-    log('error', 'could not fetch invoice ')
+    log('error', 'could not get invoice ')
     log('error', err.message)
+    throw new Error(errors.VENDOR_DOWN) // TODO : on passe  à la suite ou on interrompt ?
   })
 }
 
@@ -83,7 +86,7 @@ function getAndSaveInvoice(invoice) {
   .get({
     url: invoice.url,
     encoding: null,
-    headers:{
+    headers : {
       Connection       : 'keep-alive',
       Host             : 'serviceclients.lesechos.fr',
       Accept           : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
@@ -95,9 +98,9 @@ function getAndSaveInvoice(invoice) {
     }
   })
   .then( body => {
-    console.log('====================');
-    console.log('after get invoice, body is a buffer, mais save');
-    console.log(body);
+    // console.log('====================');
+    // console.log('after get invoice, body is a buffer, mais save'); TODO
+    // console.log(body);
     return pdf2bill(body)
       .then( bill => {
         invoice = {...invoice, ...bill}
@@ -116,7 +119,7 @@ function getAndSaveInvoice(invoice) {
     // TODO 1 sur le relevé bancaire le libelé est "PAIEMENT CB 1209 PARIS MES FINANCES FR CARTE 22773903"
     // et la date de l'opération est 2j après la date de facture : que mettre comme identifier ?
     // TODO 2 : comment est ce que je dis à savebills de ne pas à nouveau télécharger le pdf ?
-    return saveBills([invoice], CTXT.fields, {identifiers: ['echos']})
+    return saveBills([invoice], CTXT.fields, {identifiers: ['echos']}) // TODO : adapter au futur matching opéré par le service de la stack
   })
 }
 

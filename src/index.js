@@ -19,20 +19,7 @@ const {
       retrieveInvoices = require('./retrieveInvoices' ),
       retriveArticles  = require('./retriveArticles'  )
 
-const req  =  requestFactory({cheerio:false,json:false})
-
-const CTXT = {  // pagecontextual parameters
-          bookmarksList : []       , // retrieved bookmarks list
-          authorization : undefined, // retrieved during API authentication
-          formKey       : undefined, // retrieved during account authentication
-          cookieJar     : req.jar(), // the cookies for all the requests
-          fields        : undefined, // fields retrieved from the user interface (login, pwd...)
-          request       : req      ,
-          DEBUG_MODE    : false    ,
-          requestFactory: requestFactory ,
-          USER_AGENT    : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.108 Safari/537.36'
-        }
-
+var   CTXT          // connector contextual variables, inited later on
 var   FOLDER_PATH   // retrieved in "fields"
 var   FIELDS
 
@@ -49,28 +36,73 @@ process.argv.forEach(function (val, index, array) {
 })
 
 
-
 /*******************************************
   MAIN
 *********************************************/
-module.exports = new BaseKonnector(start)
+const baseKonnector = new BaseKonnector(start)
 
 async function start(fields) {
 
-  CTXT.fields = fields
+  initCTXT(fields, this)
 
   log('info', 'Authenticating ...')
-  // await authenticate(fields.login, fields.password)
-  await authenticate(CTXT)
+  // await authenticate(CTXT)
   log('info', 'Successfully logged in')
 
   log('info', 'Fetching the invoices')
-  await retrieveInvoices(CTXT)
+  // await retrieveInvoices(CTXT)
 
-  // log('info', 'Fetching the articles')
-  await retriveArticles(CTXT)
+  log('info', 'Fetching the articles')
+  // await retriveArticles(CTXT)
 
 }
+
+module.exports = baseKonnector
+
+
+/*******************************************
+  INIT CTXT VARIABLES
+*********************************************/
+function initCTXT(fields, baseKonnector) {
+  const req  =  requestFactory({cheerio:false,json:false})
+  CTXT = {
+            bookmarksList : []       , // retrieved bookmarks list
+            baseKonnector : baseKonnector ,
+            authorization : undefined, // retrieved during API authentication
+            formKey       : undefined, // retrieved during account authentication
+            cookieJar     : req.jar(), // the cookies for all the requests
+            fields        : fields   , // fields retrieved from the user interface (login, pwd...)
+            request       : req      ,
+            DEBUG_MODE    : false    ,
+            requestFactory: requestFactory ,
+            history       : baseKonnector.getAccountData(),
+            USER_AGENT    : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.108 Safari/537.36',
+            // add           : add
+          }
+
+  if(!CTXT.history) CTXT.history = []
+  console.log("ACCOUNT DATA retrieved :", CTXT.history );
+  console.log(typeof CTXT.history )
+  console.log({a:1} )
+  console.log(baseKonnector.getAccountData())
+
+
+/*******************************************
+  HISTORY OF DOWNLOADED ARTICLES MANAGEMENT
+  CTXT.history.add(item)
+  item = {
+    cozyId     : string
+    lesechosId : string
+  }
+*********************************************/
+  CTXT.history.add = function (item) {
+    this.push(item)
+    baseKonnector.saveAccountData(CTXT.history.slice(), {merge:false}) // send a full array each time ?
+  }
+}
+
+
+
 
 
 //
