@@ -49,7 +49,7 @@ async function start(fields) {
   // await authenticate(CTXT)
   log('info', 'Successfully logged in')
 
-  log('info', 'Fetching the invoices')
+  log('info', 'Fetching the invoices ...')
   // await retrieveInvoices(CTXT)
 
   log('info', 'Fetching the articles')
