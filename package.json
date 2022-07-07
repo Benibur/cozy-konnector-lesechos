@@ -41,7 +41,7 @@
     "cheerio-tableparser": "^1.0.1",
     "cozy-konnector-libs": "4.15.3",
     "mkdirp": "^0.5.1",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "pdf-parse": "^1.1.1",
     "resolve-relative-url": "^1.0.0",
     "sanitize-filename": "^1.6.1",
